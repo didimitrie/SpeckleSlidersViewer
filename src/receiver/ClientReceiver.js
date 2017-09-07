@@ -56,8 +56,7 @@ export default class SpeckleReceiver extends EventEmitter {
           break
         default: 
           console.log( 'Custom event received:', parsedMessage.args.eventType )
-          console.log( parsedMessage )
-          this.emit( parsedMessage.args.eventType, parsedMessage.args )
+          this.emit( parsedMessage.args.eventType, parsedMessage )
           break;
       }
     }
@@ -89,10 +88,33 @@ export default class SpeckleReceiver extends EventEmitter {
     } ) )
   }
 
+  sendMessage( args, recipientId ) {
+    console.log( recipientId )
+    this.ws.send( JSON.stringify( {
+      eventName: 'message',
+      senderId: this.clientId,
+      streamId: this.streamId,
+      recipientId: recipientId,
+      args: args
+    }))
+
+  }
+
   getStream( cb ) {
     axios.get( this.baseUrl + '/streams/' + this.streamId + '/meta', { headers: { 'Auth': this.auth } } )
       .then( response => {
         console.log( response.data )
+        this.stream = response.data.stream
+        cb( this.stream ) 
+      } )
+      .catch( err => {
+        console.log( err )
+      } )
+  }
+
+  getSpecificStream( theStreamId, cb ) {
+    axios.get( this.baseUrl + '/streams/' + theStreamId + '/meta', { headers: { 'Auth': this.auth } } )
+      .then( response => {
         this.stream = response.data.stream
         cb( this.stream ) 
       } )

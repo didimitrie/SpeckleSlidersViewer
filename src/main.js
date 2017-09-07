@@ -18,12 +18,12 @@ window.bus = new Vue( )
 window.camLoc = {}
 
 
-Vue.material.registerTheme('default', {
-  primary: 'black',
-  accent: 'light-blue',
-  warn: 'red',
-  background: 'white'
-})
+// Vue.material.registerTheme('default', {
+//   primary: 'black',
+//   accent: 'light-blue',
+//   warn: 'red',
+//   background: 'white'
+// })
 
 
 new Vue({

@@ -20,6 +20,9 @@
         </md-icon>
       </md-button>
     </div>
+    <transition name="fade">
+      <div v-if='showBlur' class='blur'></div>
+    </transition>
   </div>
 </template>
 
@@ -30,6 +33,10 @@ import TWEEN                from 'tween.js'
 import debounce             from 'debounce'
 
 import Converter            from '../converter/converter'
+
+import TCDef  from 'three-transform-controls'
+import _ from 'lodash'
+// var TransformControls = require('three-transform-controls')(THREE)
 
 export default {
   name: 'SpeckleRenderer',
@@ -54,7 +61,8 @@ export default {
       showInfoBox: false,
       expandInfoBox: false,
       isRotatingStuff: false,
-      enableDo: false
+      enableDo: false, 
+      showBlur: false
     }
   },
   watch: {
@@ -117,11 +125,12 @@ export default {
       }
       this.updateInProgress = false
     },
+
     render( ) {
       TWEEN.update() 
+      this.controls.update()
       this.animationId = requestAnimationFrame( this.render )
       this.renderer.render( this.scene, this.camera )
-
       if( ++this.frameSkipper == 20 ) {        
         if( this.oldQuaternion._x === this.camera.quaternion._x && this.oldQuaternion._y === this.camera.quaternion._y && this.oldQuaternion._z === this.camera.quaternion._z && this.oldQuaternion._w === this.camera.quaternion._w) {
           this.isRotatingStuff = false
@@ -138,95 +147,97 @@ export default {
         rotation: [ this.camera.rotation.x, this.camera.rotation.y, this.camera.rotation.z ],
         target: [ this.controls.target.x, this.controls.target.y, this.controls.target.z ]
       }
-
     },
+
     resizeCanvas () {
-      this.camera.aspect = window.innerWidth / window.innerHeight
+      this.camera.aspect = this.$refs.mycanvas.clientWidth / this.$refs.mycanvas.clientHeight
       this.camera.updateProjectionMatrix()
-      this.renderer.setSize( window.innerWidth, window.innerHeight )
+      this.renderer.setSize( this.$refs.mycanvas.clientWidth, this.$refs.mycanvas.clientHeight )
     },
+
     deselectObjects( ) {
-      this.hoveredObjects.forEach( myObject => {
-        let layer = this.layerMaterials.find( lmat => { return lmat.guid === myObject.layerGuid && lmat.streamId === myObject.streamId } )
-        switch( myObject.type ) {
-          case 'Line':
-          myObject.material = layer.threeLineMaterial
-          break
-          case 'Mesh':
-          if( myObject.hasVertexColors )
-            myObject.material = layer.threeMeshVertexColorsMaterial
-          else
-            myObject.material = layer.threeMeshMaterial
-          break
-          case 'Point':
-          myObject.material = layer.threePointMaterial
-          break
-        }
-      })
-      this.hoveredObjects = []
-      this.hoveredObject = ''
-      this.selectionBoxes = []
     },
+
     canvasHovered( event ) {
-      if( this.isRotatingStuff ) return
-      this.deselectObjects()
-
-      // preselect object
-      let mouse = new THREE.Vector2( ( event.clientX / window.innerWidth ) * 2 - 1, - ( event.clientY / window.innerHeight ) * 2 + 1 )
-      this.raycaster.setFromCamera( mouse, this.camera )
-
-      let intersects  = this.raycaster.intersectObjects( scene.children )
-      // console.log( intersects )
-      if( intersects.length <= 0 ) {
-        this.showInfoBox = false
-        this.expandInfoBox = false
-        return
-      }
-
-      let selectedObject = null
-      intersects.reverse().forEach( obj => {
-        if( obj.object.material.visible ) selectedObject = obj.object
-      })
-
-      if( !selectedObject ) {
-        this.showInfoBox = false
-        this.expandInfoBox = false
-        return
-      }
-      selectedObject.material = this.hoverMaterial
-      this.hoveredObjects.push( selectedObject )
-      this.hoveredObject = selectedObject.hash
-
-      this.selectedObjectsProperties = {
-        hash: selectedObject.hash,
-        streamId: selectedObject.streamId,
-        properties: selectedObject.spkProperties 
-      }
     },
     canvasClickedEvent( event ) {
-      if( event.which === 3 ) {
-        this.showInfoBox = false
-        this.expandInfoBox = false
-        return
-      }
-      this.canvasHovered( event )
-      if( this.hoveredObject != '' ) {
-        this.showInfoBox = true
-        this.$refs.infobox.style.left = event.clientX - 20 + 'px'
-        this.$refs.infobox.style.top = event.clientY - 20  + 'px'
-      } else {
-        this.showInfoBox = false
-        this.expandInfoBox = false
-      }
     },
+
+    addPointController( args ){ 
+      this.ctrl = TCDef( THREE )
+      var greatGizmo = new this.ctrl( this.camera, this.renderer.domElement )
+      var geometry = new THREE.SphereGeometry( 10, 5, 5 );
+      var material = new THREE.MeshNormalMaterial( )
+      greatGizmo.addEventListener( 'change', () => {
+        let myObj = this.scene.children.find( obj => { return obj.name === 'gizmo-trigger-' + args.Guid } )
+        let myGizmo = this.scene.children.find( obj => { return obj.name === 'gizmo-' + args.Guid } )
+        let pos = myObj.position
+        
+        // constrain!!!
+        if( pos.x > args.MaxX ) {
+          myObj.position.setX( args.MaxX )
+          myGizmo.position.setX( args.MaxX )
+        }
+        if( pos.x < args.MinX) {
+          myObj.position.setX( args.MinX )
+          myGizmo.position.setX( args.MinX )
+        }
+        if( pos.y > args.MaxY ) {
+          myObj.position.setY( args.MaxY )
+          myGizmo.position.setY( args.MaxY )
+        }
+        if( pos.y < args.MinY) {
+          myObj.position.setY( args.MinY )
+          myGizmo.position.setY( args.MinY )
+        }
+        if( pos.z > args.MaxZ ) {
+          myObj.position.setZ( args.MaxZ )
+          myGizmo.position.setZ( args.MaxZ )
+        }
+        if( pos.z < args.MinZ) {
+          myObj.position.setZ( args.MinZ) 
+          myGizmo.position.setZ( args.MinZ) 
+        }
+      } );
+
+      greatGizmo.addEventListener( 'mouseUp', ( what ) => {
+        let myObj = this.scene.children.find( obj => { return obj.name === 'gizmo-trigger-' + args.Guid } )
+        let pos = myObj.position
+        this.sendControllerUpdate( { Guid: args.Guid, position: { X: pos.x, Y: pos.y, Z: pos.z }})
+      })
+      greatGizmo.name = 'gizmo-' + args.Guid
+      var mesh = new THREE.Mesh( geometry, material );
+      mesh.name = 'gizmo-trigger-' + args.Guid
+      mesh.translateX( args.X )
+      mesh.translateY( args.Y )
+      mesh.translateZ( args.Z )
+
+      this.scene.add( mesh );
+      greatGizmo.attach( mesh );
+      this.scene.add( greatGizmo );
+    },
+
+    sendControllerUpdate: _.debounce( ( args ) => {
+      bus.$emit( 'pointcontroller-changed', args )
+    }, 100 ),
+
+    zoomExtents() {
+      let ge = new THREE.Geometry()
+
+    },
+
     zoomToObject( ) {
       let myObject = this.scene.children.find( ch => { return ch.hash === this.selectedObjectsProperties.hash } )
 
       if( ! myObject ) return console.warn('no object selected')
       myObject.geometry.computeBoundingSphere()
       let bsphere = myObject.geometry.boundingSphere
+
+      this.zoomTo( bsphere )
+    },
+
+    zoomTo( bsphere ) {
       let r = bsphere.radius
-      
       let offset = r / Math.tan( Math.PI / 180.0 * this.controls.object.fov * 0.5 )
       let vector = new THREE.Vector3( 0, 0, 1 )
       let dir = vector.applyQuaternion( this.controls.object.quaternion );
@@ -238,9 +249,8 @@ export default {
         rotation: [ this.camera.rotation.x, this.camera.rotation.y, this.camera.rotation.z ],
         target: [ bsphere.center.x, bsphere.center.y, bsphere.center.z ] 
       }, 200 )
-      // this.controls.object.position.set( newPos.x, newPos.y, newPos.z )
-      // this.controls.target.set( bsphere.center.x, bsphere.center.y, bsphere.center.z )
     },
+
     setCamera( where, time ) {
       let self = this
       let duration = time ? time : 350
@@ -267,15 +277,14 @@ export default {
 
     this.hoverMaterial = new THREE.MeshPhongMaterial( { color: new THREE.Color('#FFFF66'), specular: new THREE.Color('#FFECB3'), shininess: 0, side: THREE.DoubleSide, transparent: true, opacity: 1 } ) 
 
-
     this.renderer = new THREE.WebGLRenderer( { alpha: true, antialias: true } )
-    this.renderer.setSize( window.innerWidth, window.innerHeight )
+    this.renderer.setSize( this.$refs.mycanvas.clientWidth, this.$refs.mycanvas.clientHeight )
     this.renderer.setClearColor(new THREE.Color('#FFFFFF'), 0)
     this.$refs.mycanvas.appendChild( this.renderer.domElement )
 
     this.scene = new THREE.Scene()
 
-    this.camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+    this.camera = new THREE.PerspectiveCamera( 75, this.$refs.mycanvas.clientWidth / this.$refs.mycanvas.clientHeight, 1, 10000 );
     this.camera.up.set( 0, 0, 1 )
     this.camera.position.z = 1000
     this.camera.isCurrent = true
@@ -284,7 +293,8 @@ export default {
 
     this.OrbitControls = OrbitControlsDef( THREE )
     this.controls = new this.OrbitControls( this.camera, this.renderer.domElement)
-    
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.33;
     this.render() 
     window.addEventListener( 'resize', this.resizeCanvas )
 
@@ -304,7 +314,7 @@ export default {
     this.raycaster = new THREE.Raycaster()
 
     this.$refs.mycanvas.onmousedown = this.canvasClickedEvent
-    
+  
     document.onkeydown = ( event ) => {
       if( event.keyCode !== 27 ) return
       this.deselectObjects( )
@@ -318,31 +328,42 @@ export default {
     bus.$on( 'renderer-update',  debounce( this.update, 300 ) )
     bus.$on( 'renderer-setview',  this.setCamera )
 
-    bus.$on( 'renderer-layer-update-colors', args => {
-      //set colorsNeedUpdate flag to true on all geoms in args.layerguid and args.streamid
-    } )
+    bus.$on( 'renderer-add-blur', () => { 
+      this.showBlur = true 
+    })
+    bus.$on( 'renderer-remove-blur', () => { 
+      this.showBlur = false 
+    })
 
-    bus.$on( 'renderer-toggle-do', () => {
-      // TODO
-    } )
 
     bus.$on( 'renderer-pop', () => {
-      console.log("POP")
       this.$refs.mycanvas.classList.toggle('pop')
       this.showInfoBox = false
       this.expandInfoBox = false
     })
     bus.$on( 'renderer-unpop', () => {
-      console.log("UNPOP")
       this.$refs.mycanvas.classList.toggle('pop')
     })
+
+    bus.$on( 'renderer-add-pointcontroller', this.addPointController )
   }
 }
 </script>
 
 <style scoped>
+.blur{
+  position: absolute;
+  top:0;left:0;
+  width:100%;
+  height: 100%;
+  opacity: 0.90;
+  z-index: 100;
+  pointer-events: none;
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAANUlEQVQoU2NkwAO6urr+M+KSB0mWlZUxYlUAkwRpxlCALImhAF0SRQE2SbgCXJJgBfgkQQoAGz0epkcUVV0AAAAASUVORK5CYII=) repeat;
+
+}
 #render-window {
-  position: fixed;
+  position: absolute;
   top:0;left:0;
   width:100%;
   height: 100%;
@@ -400,5 +421,12 @@ export default {
 .tree-view-wrapper {
   font-family: auto;
   overflow: hidden !important;
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 1s
+}
+.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+  opacity: 0
 }
 </style>

@@ -31,7 +31,6 @@
 import { Chrome, Compact }         from 'vue-color'
 import * as THREE         from 'three'
 import * as ML            from 'three.meshline'
-import debounce           from 'debounce'
 
 export default {
   name: '',

@@ -1,19 +1,15 @@
 <template>
   <div id="app">
-    <login-screen v-if='showLogin' v-on:success='loggedIn'></login-screen>
-    <!-- <speckle-viewer v-if='!showLogin'></speckle-viewer> -->
     <speckle-viewer></speckle-viewer>
   </div>
 </template>
 
 <script>
-import LoginScreen      from './components/LoginScreen.vue'
 import SpeckleViewer    from './components/SpeckleViewer.vue'
 
 export default {
   name: 'app',
   components: {
-    LoginScreen,
     SpeckleViewer
   },
   data () {
@@ -69,31 +65,13 @@ export default {
     }
   },
   created() {
+    this.createReceivers( )
     this.$http.get( window.SpkAppConfig.serverUrl )
     .then( response => {
       window.SpkAppConfig.serverDetails = response.data
-
-      var account = localStorage.getItem('userAccount')
-      var jwtToken = localStorage.getItem('userJwtToken')
-
-      return this.$http.get( window.SpkAppConfig.serverDetails.restApi + '/accounts/profile', { 
-        headers: 
-        {
-          Authorization: JSON.parse( jwtToken )
-        }
-      } )
-    })
-    .then( response => { 
-      if( response.status != 200 ) throw new Error( response )
-      let args = {
-        guest: false,
-        account: response.data
-      }
-      localStorage.setItem( 'userAccount', JSON.stringify( response.data ) )
-      this.loggedIn( args )
     })
     .catch( err => {
-      console.warn( err )
+      console.log( err )
     })
     bus.$on('app-show-login', () => {
       this.showLogin = true
@@ -104,16 +82,19 @@ export default {
 
 <style>
 body {
-  background-color: #E6E6E6;
+  background-color: #3A3A3A;
 }
 #app {
-  position: fixed;
+  position: relative;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: #E6E6E6;
+  background-color: #333333;
   /*background: -webkit-linear-gradient(to top, #666666, #808080);
   background: linear-gradient(to top, #666666, #808080);*/
+}
+.text-center{
+  text-align: center;
 }
 </style>

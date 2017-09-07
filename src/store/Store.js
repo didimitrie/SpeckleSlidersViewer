@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
 import LMat from './LayerMaterial'
+import Materials from './Materials'
 
 import * as THREE from 'three'
 
@@ -12,7 +13,8 @@ export default new Vuex.Store( {
     receivers: [ ],
     comments: [ ],
     user: {},
-    jwtToken: ''
+    jwtToken: '',
+    Materials: Materials
   },
   getters: {
     isMobile: state => state.mobile,
@@ -45,6 +47,12 @@ export default new Vuex.Store( {
       // console.log( arr )
       return arr
       // return arr.concat.apply( [ ], arr )
+    },
+    allMaterials: (state) => {
+      return state.Materials
+    },
+    materialsForLayer: ( state ) => ( layerGuid ) => {
+      return state.Materials
     }
   },
   actions: {},
@@ -88,6 +96,25 @@ export default new Vuex.Store( {
 
     },
 
+    SET_LAYER_MATS( state, { payload } ) {
+      let lines = payload.data.split('\n')
+      
+      lines.forEach( line => {
+        let layerName = line.split(':')[0]
+        let targetLayer = state.receivers.find( rec => rec.streamId === payload.streamId ).layers.find( la => la.name === layerName )
+        
+        if( !targetLayer ) console.error('Wot, no layer with dis name', layerName )
+        else {
+          let layerMatNames = line.split(':')[1]
+          let avmats = targetLayer.properties.availableMaterials;
+          avmats.forEach( mat => {
+            if( layerMatNames.indexOf( mat.type ) > -1 ) mat.available = true
+            else mat.available = false
+          })
+        }
+      })
+    },
+
     INIT_RECEIVER_DATA( state, { payload } ) {
       let target = state.receivers.find( rec => rec.streamId === payload.streamId )
       target.name = payload.name
@@ -108,6 +135,8 @@ export default new Vuex.Store( {
           layer.properties = new LMat( { guid: layer.guid, streamId: target.streamId } ) 
           return layer
         } else {
+          layer.properties.availableMaterials = Materials()
+          layer.properties.selectedMaterial = Materials()[0]
           layer.properties.threeMeshMaterial = new THREE.MeshPhongMaterial( { ...layer.properties.threeMeshMaterial } )
           layer.properties.threeLineMaterial = new THREE.LineBasicMaterial( { ...layer.properties.threeLineMaterial } )
           layer.properties.threeEdgesMaterial = new THREE.LineBasicMaterial( { ...layer.properties.threeEdgesMaterial } )
