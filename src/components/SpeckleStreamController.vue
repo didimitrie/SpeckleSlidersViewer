@@ -44,7 +44,10 @@
         </div>
         <br>
         <div class="xxxtext-center">
-          <md-button class='md-accent md-raised text'>Next</md-button>
+          <md-button class='md-accent md-raised text'>
+          <md-tooltip>Your custom stream id: {{this.currentStreamId}}</md-tooltip>
+          Share
+          </md-button>
         </div>
       </md-card-content>
     </md-card>
@@ -90,6 +93,7 @@ export default {
   },
   data () {
     return {
+      currentStreamId: '',
       showLayers: false,
       showColorPickerLayers: false,
       showProgressBar: true,
@@ -243,6 +247,7 @@ export default {
     computationResult( message ) {     
       bus.$emit('renderer-remove-blur')
 
+      this.currentStreamId = message.args.streamId
       this.mySpkReceiver.getSpecificStream( message.args.streamId, stream => {
         let payload = { streamId: this.spkreceiver.streamId, name: stream.name, layers: stream.layers, objects: stream.objects }
         this.$store.commit( 'SET_RECEIVER_DATA',  { payload } )

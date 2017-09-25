@@ -293,8 +293,8 @@ export default {
 
     this.OrbitControls = OrbitControlsDef( THREE )
     this.controls = new this.OrbitControls( this.camera, this.renderer.domElement)
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.33;
+    // this.controls.enableDamping = true;
+    // this.controls.dampingFactor = 0.33;
     this.render() 
     window.addEventListener( 'resize', this.resizeCanvas )
 
