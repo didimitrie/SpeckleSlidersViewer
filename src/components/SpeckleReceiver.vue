@@ -10,22 +10,25 @@
       <span class="md-caption"><code style="user-select:all">{{ spkreceiver.streamId }}</code></span>
       <br>
       <md-progress md-indeterminate v-show='showProgressBar' style='margin-bottom:20px;margin-top:20px;'></md-progress>
-      <!-- <div class="md-caption"><br>ID: <code>{{ spkreceiver.streamId }}</code></div> -->
+      <md-button v-show='expired' class='md-densexx md-warn md-raised md-icon-button' id='refresh-button' @click.native='getAndSetStream()'>
+        <md-icon>refresh</md-icon>
+        <md-tooltip>Update available. Click to refresh.</md-tooltip>
+      </md-button>
     </md-card-header>
     <md-card-content v-show='expanded'>
-      <md-tabs md-fixedXXX class='md-transparent'>
+<!--       <md-tabs md-fixedXXX class='md-transparent'>
         <md-tab id="layers" md-label="layers" class='receiver-tabs'>
-            <speckle-receiver-layer v-for='layer in layers' :key='layer.guid' :spklayer='layer' :streamid='spkreceiver.streamId'></speckle-receiver-layer>
-        </md-tab>
+ -->            <speckle-receiver-layer v-for='layer in layers' :key='layer.guid' :spklayer='layer' :streamid='spkreceiver.streamId'></speckle-receiver-layer>
+<!--         </md-tab>
         <md-tab id='comments' md-label='views' class='receiver-tabs'>
           <speckle-receiver-comments :streamid='spkreceiver.streamId' v-on:comment-submit='commentSubmit' ></speckle-receiver-comments>
         </md-tab>
         <md-tab id='versions' md-label='versions' class='receiver-tabs'>
         <br>
         <div class="md-subhead">Todo.</div>
-<!--           <speckle-receiver-comments :streamid='spkreceiver.streamId' v-on:comment-submit='commentSubmit' ></speckle-receiver-comments> -->
+          <speckle-receiver-comments :streamid='spkreceiver.streamId' v-on:comment-submit='commentSubmit' ></speckle-receiver-comments>
         </md-tab>
-      </md-tabs>
+      </md-tabs> -->
       
     </md-card-content>
   </md-card>
@@ -33,7 +36,8 @@
 </template>
 
 <script>
-import ReceiverClient             from '../receiver/SpeckleReceiver' // temporary solution to fix uglify error on build.
+// import ReceiverClient             from '../receiver/SpeckleReceiver'
+import ReceiverClient             from '../receiver/ClientReceiver'
 import SpeckleReceiverLayer       from './SpeckleReceiverLayer.vue'
 import SpeckleReceiverComments    from './SpeckleReceiverComments.vue'
 
@@ -61,69 +65,61 @@ export default {
       showProgressBar: true,
       objLoadProgress: 100,
       comments: 'Hello World. How Are you? Testing testing 123.',
-      isStale: false,
-      expanded: true
+      expanded: true, 
+      expired: false
     }
   },
   methods: {
     receiverError( err ) {
       this.errror = err
     },
-    getComments( ) {
-      this.$http.get( window.SpkAppConfig.serverDetails.restApi + '/comments/' + this.spkreceiver.streamId )
-      .then( response => {
-        if( !response.data.success ) throw new Error( 'Failed to retrieve comments for stream ' + this.spkreceiver.streamId )
-        // if( response.data.comments.length <= 0 ) return console.warn( 'Stream had no commnets.' )
-        let payload = { comments: response.data.comments }
-        this.$store.commit( 'ADD_COMMENTS', { payload } )
-      })
-      .catch( err => {
-        console.warn( err )
-      })
-    },
+    
     receiverReady( name, layers, objects, history, layerMaterials ) {
-      this.getComments() 
-      
       this.showProgressBar = false
       this.objLoadProgress = 0
       let payload = { streamId: this.spkreceiver.streamId, name: name, layers: layers, objects: objects, layerMaterials: layerMaterials }
+      
       this.$store.commit( 'INIT_RECEIVER_DATA',  { payload } )
       
       bus.$emit('renderer-update')
-      this.isStale = true
     },
-    liveUpdate( name, layers, objects, history ) {
-      console.info( 'live update event' )
-      this.showProgressBar = false
-      this.objLoadProgress = 0
 
-      let payload = { streamId: this.spkreceiver.streamId, name: name, layers: layers, objects: objects }
-      this.$store.commit( 'SET_RECEIVER_DATA',  { payload } )
+    updateGlobal( ) {
+      console.info( 'live update event' )
+      this.expired = true
+      // this.showProgressBar = false
+      // this.objLoadProgress = 0
+
+      // let payload = { streamId: this.spkreceiver.streamId, name: name, layers: layers, objects: objects }
+      // this.$store.commit( 'SET_RECEIVER_DATA',  { payload } )
       
-      bus.$emit('renderer-update')
-      this.isStale = true
+      // bus.$emit('renderer-update')
+      // this.isStale = true
     },
-    metadataUpdate( name, layers ) {
-      let payload = { streamId: this.spkreceiver.streamId, name: name, layers: layers }
-      this.$store.commit( 'SET_RECEIVER_METADATA',  { payload } )
+
+    getAndSetStream( ) {
+      this.showProgressBar = true
+      this.expired = false
+      this.mySpkReceiver.getStream( stream => {
+        let payload = { streamId: this.spkreceiver.streamId, name: stream.name, layers: stream.layers, objects: stream.objects }
+        this.$store.commit( 'SET_RECEIVER_DATA',  { payload } )
+        this.showProgressBar = false
+        bus.$emit('renderer-update')
+      } )
+
     },
+
+    updateMeta( ) {
+      this.mySpkReceiver.getStreamNameAndLayers( ( name, layers ) => {
+        let payload = { streamId: this.spkreceiver.streamId, name: name, layers: layers }
+        this.$store.commit( 'SET_RECEIVER_METADATA',  { payload } )  
+      })      
+    },
+
     objLoadProgressEv( loaded ) {
       this.objLoadProgress = ( loaded + 1 ) / this.objects.length * 100
     },
-    commentSubmit( comment ) {
-      let payload = comment
-      payload.streamId = this.spkreceiver.streamId
-
-      this.$http.post( window.SpkAppConfig.serverDetails.restApi + '/comments', { comment: comment }, { headers: { Authorization: this.$store.getters.authToken } } )
-      .then( response => {
-        if( ! response.data.success ) throw new Error( 'Failed to post comment for a reason.' )
-        this.$store.commit( 'ADD_COMMENT', { payload } )
-        this.mySpkReceiver.broadcast(  { event: 'comment-added',  comment: comment } )
-      })
-      .catch( err => { 
-        console.log( err ) 
-      })
-    },
+    
     broadcastReceived( message ) {
       console.log( message )
       let parsedMessage = JSON.parse( message.args )
@@ -134,25 +130,29 @@ export default {
     }
   },
   mounted() {
-    console.log( 'Receiver mounted: ' + this.spkreceiver.streamId )
+    console.log( 'Stream receiver mounted for streamid: ' + this.spkreceiver.streamId )
     this.name = 'loading ' + this.spkreceiver.streamId
+    
     this.mySpkReceiver = new ReceiverClient({
-      serverUrl: this.spkreceiver.serverUrl,
+      baseUrl: this.spkreceiver.serverUrl ,
       streamId: this.spkreceiver.streamId,
       token: this.spkreceiver.token
     })
 
     this.mySpkReceiver.on( 'error', this.receiverError )
     this.mySpkReceiver.on( 'ready', this.receiverReady )
-    this.mySpkReceiver.on( 'live-update', this.liveUpdate )
-    this.mySpkReceiver.on( 'metadata-update', this.metadataUpdate )
-    this.mySpkReceiver.on( 'object-load-progress', this.objLoadProgressEv )
-    this.mySpkReceiver.on( 'volatile-broadcast', this.broadcastReceived )
+    this.mySpkReceiver.on( 'update-meta', this.updateMeta )
+    this.mySpkReceiver.on( 'update-global', this.updateGlobal )
   }
 }
 </script>
 
 <style>
+#refresh-button {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+}
 .line-height-adjustment{
   line-height: 30px;
 }

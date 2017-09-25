@@ -1,36 +1,22 @@
 <template>
 <div id="stream-list-cover">
-  <div class='list-menu'>
-    <md-button class="md-icon-button md-warn" @click.native='showNewStreamDialgue = true'>
-      <md-icon>add</md-icon>
-    </md-button>
-    <md-button class="md-icon-button md-primary" @click.native='toggleStreamList'>
-      <md-icon>{{ showStreamList ? 'keyboard_arrow_left':'keyboard_arrow_right' }}</md-icon>
-      <md-tooltip> {{ showStreamList ? 'Hide' : 'Show' }} the stream list.</md-tooltip>
-    </md-button>
-  </div>
   <div id='stream-list' class='' ref='thestreamlist'>
-    <speckle-receiver v-for='receiver in receivers' :key='receiver.streamId' :spkreceiver='receiver'></speckle-receiver>
+    <stream-controller v-for='receiver in receivers' :key='receiver.streamId' :spkreceiver='receiver'></stream-controller>
     <div class='paddedcard' style='position:relative;' v-show='receivers.length === 0'>
       <div class="md-title">There are no clients to show.</div>
       <p>You can add a new client by click on the add button above.</p>
     </div>
   </div>
-  <speckle-new-stream-dialog v-on:close='showNewStreamDialgue = false' v-show='showNewStreamDialgue'></speckle-new-stream-dialog>
 </div>
 </template>
 
 <script>
-import SpeckleReceiver            from './SpeckleReceiver.vue'
-import SpeckleNewStreamDialog     from './SpeckleNewStreamDialog.vue'
-import NewReceiver                from './NewReceiver.vue'
+import StreamController            from './SpeckleStreamController.vue'
 
 export default {
   name: 'SpeckleStreamList',
   components: {
-    SpeckleReceiver,
-    NewReceiver,
-    SpeckleNewStreamDialog
+    StreamController
   },
   computed: {
     receivers() {
@@ -49,7 +35,6 @@ export default {
     },
     toggleStreamList() {
       this.showStreamList = ! this.showStreamList
-      console.log(this.$refs.thestreamlist  )
       this.$refs.thestreamlist.classList.toggle('hidden')
     }
   },
@@ -63,17 +48,18 @@ export default {
 
 <style scoped>
 #stream-list-cover{
-  position: fixed;
+  position: relative;
   padding-top: 10px;
   padding-bottom: 10px;
   top:0px;
   height: 100%;
   left: 10px;
-  width: 340px;
+  width: 370px;
   overflow: hidden;
   z-index: 99;
   pointer-events: none;
   box-sizing: border-box;
+  z-index: 120;
 }
 .list-menu {
   pointer-events: auto;
@@ -84,13 +70,13 @@ export default {
 }
 #stream-list {
   position: relative;
-  padding-right: 10px;
-  left: 10px;
+  padding-right: 15px;
+  /*left: 10px;*/
   top: 0;
   max-height:95%;
   width: 350px;
   box-sizing: border-box;
-  overflow-y: scroll;
+  /*overflow-y: scroll;*/
   z-index: 100;
   pointer-events: auto;
   transition: all .2s ease;

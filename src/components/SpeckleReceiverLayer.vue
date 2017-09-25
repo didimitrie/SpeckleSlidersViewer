@@ -26,11 +26,11 @@ export default {
   },
   computed: {
     layerMaterial() {
-      return this.$store.getters.layerMaterial( this.streamid, this.spklayer.guid )
+      return this.spklayer.properties
     },
     colorStyle() {
       if( this.layerMaterial )
-        return 'color:' + this.layerMaterial.color.hex
+        return 'color:' + this.spklayer.properties.color.hex
       return 'color:gray'
     },
     showPicker() {
@@ -66,6 +66,9 @@ export default {
   border-bottom: 1px solid #E6E6E6;
   position: relative;
   user-select: none;
+}
+.spk-layer:last-of-type{
+  border-bottom: 0;
 }
 .layer-details {
   line-height: 50px;

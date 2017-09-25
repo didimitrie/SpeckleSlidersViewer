@@ -1,8 +1,10 @@
 import * as THREE             from 'three'
+import Materials              from './Materials'
 
 export default ( args ) => {
   if( !args ) return console.error( 'Can\'t create default layer material object without streamid and layer guid.' )
   return {
+    availableMaterials: Materials(), // populate populate populate
     color: { hex: '#B3B3B3', a: 1 },
     visible: true,
     smooth: true,
@@ -15,6 +17,7 @@ export default ( args ) => {
     showEdges: true,
     wireframe: false,
     vertexColors: false,
+    selectedMaterial: {},
     threeMeshMaterial: new THREE.MeshPhongMaterial( {
       color: new THREE.Color('#B4B8B9'),
       specular: new THREE.Color('#FFECB3'),

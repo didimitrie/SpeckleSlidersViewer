@@ -5,16 +5,18 @@
   "author": "didimitrie <didimitrie@gmail.com>",
   "private": true,
   "scripts": {
-    "dev": "cross-env NODE_ENV=development webpack-dev-server --open --hot --port 8888",
+    "dev": "cross-env NODE_ENV=development webpack-dev-server --hot --port 8888",
     "build": "cross-env NODE_ENV=production webpack --progress --hide-modules"
   },
   "dependencies": {
     "axios": "^0.16.1",
     "debounce": "^1.0.2",
     "event-emitter-es6": "^1.1.5",
+    "lodash": "^4.17.4",
     "specklebrowser": "0.0.5",
     "three": "^0.85.2",
     "three-orbit-controls": "^82.1.0",
+    "three-transform-controls": "^1.0.4",
     "three.meshline": "^1.0.3",
     "tween.js": "^16.6.0",
     "vue": "^2.2.1",
@@ -22,6 +24,7 @@
     "vue-dragging": "^1.0.6",
     "vue-json-tree-view": "^2.0.7",
     "vue-material": "^0.7.1",
+    "vue-slider-component": "^2.3.9",
     "vuex": "^2.3.1"
   },
   "devDependencies": {
