@@ -136,6 +136,7 @@ export default {
     },
     'layers': {
       handler( values ) {
+        if( this.showColorPickerLayers ) return // disable "computation updates" for colour changes yo.
         let args = {
           controllers: this.controllers, 
           layers: this.spkreceiver.layers,
