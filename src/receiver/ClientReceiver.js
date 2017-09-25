@@ -101,7 +101,7 @@ export default class SpeckleReceiver extends EventEmitter {
   }
 
   getStream( cb ) {
-    axios.get( this.baseUrl + '/streams/' + this.streamId + '/meta', { headers: { 'Auth': this.auth } } )
+    axios.get( this.baseUrl + '/streams/' + this.streamId + '', { headers: { 'Auth': this.auth } } )
       .then( response => {
         console.log( response.data )
         this.stream = response.data.stream
@@ -113,7 +113,7 @@ export default class SpeckleReceiver extends EventEmitter {
   }
 
   getSpecificStream( theStreamId, cb ) {
-    axios.get( this.baseUrl + '/streams/' + theStreamId + '/meta', { headers: { 'Auth': this.auth } } )
+    axios.get( this.baseUrl + '/streams/' + theStreamId + '', { headers: { 'Auth': this.auth } } )
       .then( response => {
         this.stream = response.data.stream
         cb( this.stream ) 

@@ -1,5 +1,6 @@
 var SpkAppConfig = {
   serverUrl: 'http://localhost:8080',
+  restApi: 'http://localhost:8080/api',
   allowGuestAccess: true,
   showNormalLayers: false,
   showMaterialLayers: true,
